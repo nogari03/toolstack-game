@@ -1,0 +1,1 @@
+C:\Users\kenet\IdeaProjects\g1\janggi-wasm\target\wasm32-unknown-unknown\debug\janggi_wasm.wasm: C:\Users\kenet\IdeaProjects\g1\janggi-wasm\src\board.rs C:\Users\kenet\IdeaProjects\g1\janggi-wasm\src\lib.rs C:\Users\kenet\IdeaProjects\g1\janggi-wasm\src\rules.rs

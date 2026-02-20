@@ -13,6 +13,7 @@
     "vite": "^7.3.1"
   },
   "dependencies": {
-    "chess-wasm": "file:../chess-wasm/pkg"
+    "chess-wasm": "file:../chess-wasm/pkg",
+    "janggi-wasm": "file:../janggi-wasm/pkg"
   }
 }

@@ -79,8 +79,7 @@ impl GameState {
 
         if !is_pseudo_legal { return false; }
 
-        // Must not leave king in check
-        !self.would_be_in_check(from_row, from_col, to_row, to_col)
+        true
     }
 
     fn is_valid_pawn_move(&self, color: Color, fr: usize, fc: usize, tr: usize, tc: usize, has_moved: bool) -> bool {
@@ -207,6 +206,110 @@ impl GameState {
             c += dc;
         }
         true
+    }
+
+    pub fn get_status(&self) -> String {
+        let mut white_king = false;
+        let mut black_king = false;
+        for r in 0..8 {
+            for c in 0..8 {
+                if let Some(p) = self.board[r][c] {
+                    if p.piece_type == PieceType::King {
+                        if p.color == Color::White { white_king = true; }
+                        if p.color == Color::Black { black_king = true; }
+                    }
+                }
+            }
+        }
+        if !white_king { return "White King Captured: Black Wins".to_string(); }
+        if !black_king { return "Black King Captured: White Wins".to_string(); }
+
+        let mut has_moves = false;
+        'outer: for r in 0..8 {
+            for c in 0..8 {
+                if let Some(p) = self.board[r][c] {
+                    if p.color == self.current_turn {
+                        let moves = self.get_valid_moves(r, c);
+                        if !moves.is_empty() {
+                            has_moves = true;
+                            break 'outer;
+                        }
+                    }
+                }
+            }
+        }
+
+        if !has_moves {
+            if self.is_in_check(self.current_turn) {
+                let winner = if self.current_turn == Color::White { "Black" } else { "White" };
+                return format!("Checkmate: {} Wins", winner);
+            } else {
+                return "Stalemate: Draw".to_string();
+            }
+        }
+        "Active".to_string()
+    }
+
+    pub fn is_in_check(&self, color: Color) -> bool {
+        let mut king_pos = None;
+        for r in 0..8 {
+            for c in 0..8 {
+                if let Some(p) = self.board[r][c] {
+                    if p.piece_type == PieceType::King && p.color == color {
+                        king_pos = Some((r, c));
+                        break;
+                    }
+                }
+            }
+        }
+        let (kr, kc) = match king_pos {
+            Some(pos) => pos,
+            None => return false,
+        };
+
+        for r in 0..8 {
+            for c in 0..8 {
+                if let Some(p) = self.board[r][c] {
+                    if p.color != color {
+                        let is_attack = match p.piece_type {
+                            PieceType::Pawn => {
+                                let dir = if p.color == Color::White { -1 } else { 1 };
+                                let dr = kr as isize - r as isize;
+                                let dc = kc as isize - c as isize;
+                                dr == dir && dc.abs() == 1
+                            },
+                            PieceType::Knight => {
+                                let dr = kr as isize - r as isize;
+                                let dc = kc as isize - c as isize;
+                                (dr.abs() == 2 && dc.abs() == 1) || (dr.abs() == 1 && dc.abs() == 2)
+                            },
+                            PieceType::Bishop => {
+                                let dr = kr as isize - r as isize;
+                                let dc = kc as isize - c as isize;
+                                dr.abs() == dc.abs() && self.is_path_clear_on_board(&self.board, r, c, kr, kc)
+                            },
+                            PieceType::Rook => {
+                                let dr = kr as isize - r as isize;
+                                let dc = kc as isize - c as isize;
+                                (dr == 0 || dc == 0) && self.is_path_clear_on_board(&self.board, r, c, kr, kc)
+                            },
+                            PieceType::Queen => {
+                                let dr = kr as isize - r as isize;
+                                let dc = kc as isize - c as isize;
+                                (dr.abs() == dc.abs() || dr == 0 || dc == 0) && self.is_path_clear_on_board(&self.board, r, c, kr, kc)
+                            },
+                            PieceType::King => {
+                                let dr = kr as isize - r as isize;
+                                let dc = kc as isize - c as isize;
+                                dr.abs() <= 1 && dc.abs() <= 1
+                            }
+                        };
+                        if is_attack { return true; }
+                    }
+                }
+            }
+        }
+        false
     }
 
     pub fn move_piece(&mut self, fr: usize, fc: usize, tr: usize, tc: usize) -> Result<(), &'static str> {

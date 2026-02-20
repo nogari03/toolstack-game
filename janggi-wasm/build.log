@@ -1,0 +1,18 @@
+[INFO]: Checking for the Wasm target...
+[INFO]: Compiling to Wasm...
+   Compiling janggi-wasm v0.1.0 (C:\Users\kenet\IdeaProjects\g1\janggi-wasm)
+warning: unused variable: `color`
+   --> src\rules.rs:231:81
+    |
+231 |     fn is_valid_palace_piece(&self, fr: usize, fc: usize, tr: usize, tc: usize, color: Color) -> bool {
+    |                                                                                 ^^^^^ help: if this is intentional, prefix it with an underscore: `_color`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+
+    Finished `release` profile [optimized] target(s) in 0.36s
+[INFO]: Installing wasm-bindgen...
+[INFO]: Optimizing wasm binaries with `wasm-opt`...
+[INFO]: Optional fields missing from Cargo.toml: 'description', 'repository', and 'license'. These are not necessary, but recommended
+[INFO]: :-) Done in 0.74s
+[INFO]: :-) Your wasm pkg is ready to publish at C:\Users\kenet\IdeaProjects\g1\janggi-wasm\pkg.

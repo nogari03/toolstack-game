@@ -33,6 +33,10 @@ impl GameEngine {
         serde_json::to_string(&self.state.current_turn).unwrap()
     }
 
+    pub fn get_status(&self) -> String {
+        self.state.get_status()
+    }
+
     pub fn get_valid_moves(&self, row: usize, col: usize) -> Vec<JsValue> {
         let moves = self.state.get_valid_moves(row, col);
         moves.into_iter()

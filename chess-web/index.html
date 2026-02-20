@@ -1,19 +1,32 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Wasm Chess</title>
-  </head>
-  <body>
-    <div id="app">
-      <h1>Rust Wasm Chess</h1>
-      <div id="board-container">
-        <div id="board"></div>
-      </div>
-      <p id="status">Welcome to WebAssembly Chess!</p>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wasm Board Games</title>
+</head>
+
+<body>
+  <div id="app">
+    <h1>Wasm Board Games</h1>
+    <div id="controls" style="margin-bottom: 20px;">
+      <label for="game-selector">Select Game: </label>
+      <select id="game-selector">
+        <option value="chess">Chess</option>
+        <option value="janggi">Janggi</option>
+      </select>
     </div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+    <div id="board-container">
+      <div id="board"></div>
+    </div>
+    <p id="status">Welcome to WebAssembly Board Games!</p>
+    <button id="reset-button"
+      style="display: none; margin: 10px auto; padding: 10px 20px; font-size: 1rem; cursor: pointer; border-radius: 8px; border: 1px solid #888; background-color: #333; color: white;">Reset
+      Game</button>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>

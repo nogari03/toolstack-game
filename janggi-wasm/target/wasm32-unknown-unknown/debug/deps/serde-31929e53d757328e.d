@@ -1,0 +1,14 @@
+C:\Users\kenet\IdeaProjects\g1\janggi-wasm\target\wasm32-unknown-unknown\debug\deps\serde-31929e53d757328e.d: C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\Users\kenet\IdeaProjects\g1\janggi-wasm\target\wasm32-unknown-unknown\debug\build\serde-ca733806d85138be\out/private.rs
+
+C:\Users\kenet\IdeaProjects\g1\janggi-wasm\target\wasm32-unknown-unknown\debug\deps\libserde-31929e53d757328e.rlib: C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\Users\kenet\IdeaProjects\g1\janggi-wasm\target\wasm32-unknown-unknown\debug\build\serde-ca733806d85138be\out/private.rs
+
+C:\Users\kenet\IdeaProjects\g1\janggi-wasm\target\wasm32-unknown-unknown\debug\deps\libserde-31929e53d757328e.rmeta: C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs C:\Users\kenet\IdeaProjects\g1\janggi-wasm\target\wasm32-unknown-unknown\debug\build\serde-ca733806d85138be\out/private.rs
+
+C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\lib.rs:
+C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\integer128.rs:
+C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\mod.rs:
+C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\de.rs:
+C:\Users\kenet\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\serde-1.0.228\src\private\ser.rs:
+C:\Users\kenet\IdeaProjects\g1\janggi-wasm\target\wasm32-unknown-unknown\debug\build\serde-ca733806d85138be\out/private.rs:
+
+# env-dep:OUT_DIR=C:\\Users\\kenet\\IdeaProjects\\g1\\janggi-wasm\\target\\wasm32-unknown-unknown\\debug\\build\\serde-ca733806d85138be\\out
