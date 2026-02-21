@@ -3,6 +3,7 @@ import initChess, { GameEngine as ChessEngine } from 'chess-wasm'
 import initJanggi, { GameEngine as JanggiEngine } from 'janggi-wasm'
 import initMinesweeper, { GameEngine as MinesweeperEngine } from 'minesweeper-wasm'
 import init2048, { GameEngine as Game2048Engine } from 'game2048-wasm'
+import initRacing, { RacingGame } from 'racing-wasm'
 
 type Color = "White" | "Black" | "Cho" | "Han";
 type PieceType = "Pawn" | "Knight" | "Bishop" | "Rook" | "Queen" | "King" | "General" | "Advisor" | "Elephant" | "Horse" | "Chariot" | "Cannon" | "Soldier";
@@ -17,9 +18,10 @@ type Square = Piece | null;
 type BoardGrid = Square[][];
 
 let engine: any;
-let currentGame: "chess" | "janggi" | "minesweeper" | "2048" = "chess";
+let currentGame: "chess" | "janggi" | "minesweeper" | "2048" | "racing" = "chess";
 let selectedSquare: { row: number, col: number } | null = null;
 let validMovesForSelected: { row: number, col: number }[] = [];
+let keys = { up: false, down: false, left: false, right: false };
 
 const boardElement = document.getElementById('board')!;
 const statusElement = document.getElementById('status')!;
@@ -35,8 +37,17 @@ boardElement.addEventListener('contextmenu', (e) => {
   e.preventDefault();
 });
 
-// Key bindings for 2048
+// Key bindings for 2048 and Racing
 window.addEventListener('keydown', (e) => {
+  if (currentGame === "racing") {
+    if (["ArrowUp", "w", "W"].includes(e.key)) keys.up = true;
+    if (["ArrowDown", "s", "S"].includes(e.key)) keys.down = true;
+    if (["ArrowLeft", "a", "A"].includes(e.key)) keys.left = true;
+    if (["ArrowRight", "d", "D"].includes(e.key)) keys.right = true;
+    // Prevent default scrolling
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
+  }
+
   if (currentGame === "2048" && engine) {
     const status = engine.get_status();
     if (status !== "Active") return;
@@ -52,6 +63,15 @@ window.addEventListener('keydown', (e) => {
       engine.execute_move(direction);
       renderBoard();
     }
+  }
+});
+
+window.addEventListener('keyup', (e) => {
+  if (currentGame === "racing") {
+    if (["ArrowUp", "w", "W"].includes(e.key)) keys.up = false;
+    if (["ArrowDown", "s", "S"].includes(e.key)) keys.down = false;
+    if (["ArrowLeft", "a", "A"].includes(e.key)) keys.left = false;
+    if (["ArrowRight", "d", "D"].includes(e.key)) keys.right = false;
   }
 });
 
@@ -80,12 +100,17 @@ function renderBoard() {
     return;
   }
 
+  if (currentGame === "racing") {
+    return; // Racing has its own animation loop
+  }
+
   const boardState: BoardGrid = JSON.parse(engine.get_board_state());
   const currentTurnInfo: Color = JSON.parse(engine.get_current_turn());
 
   const numRows = boardState.length;
   const numCols = boardState[0].length;
 
+  boardElement.style.display = 'grid';
   boardElement.style.gridTemplateColumns = `repeat(${numCols}, 60px)`;
   boardElement.style.gridTemplateRows = `repeat(${numRows}, 60px)`;
   boardElement.style.border = "4px solid #333";
@@ -94,10 +119,10 @@ function renderBoard() {
   boardElement.style.padding = "0px";
 
   if (gameStatus === "Active") {
-    statusElement.textContent = `Turn: ${currentGame === 'janggi' ? (currentTurnInfo === 'White' ? 'HAN (Red)' : 'CHO (Blue/Green)') : currentTurnInfo.toUpperCase()} - Verified by Rust Engine 🦀`;
+    statusElement.textContent = `Turn: ${currentGame === 'janggi' ? (currentTurnInfo === 'White' ? 'HAN (Red)' : 'CHO (Blue/Green)') : currentTurnInfo.toUpperCase()}`;
     resetButton.style.display = 'none';
   } else {
-    statusElement.innerHTML = `< strong style = "color:var(--focus-color); font-size: 1.5rem;" >🚨 Game Over - ${gameStatus} 🚨</strong>`;
+    statusElement.innerHTML = `< strong style = "color:var(--focus-color); font-size: 1.5rem;" >${gameStatus}</strong>`;
     resetButton.style.display = 'block';
   }
 
@@ -153,6 +178,7 @@ function render2048Board(gameStatus: string) {
   const boardState: number[][] = JSON.parse(engine.get_board_state());
   const score = engine.get_score();
 
+  boardElement.style.display = 'grid';
   boardElement.style.gridTemplateColumns = `repeat(4, 100px)`;
   boardElement.style.gridTemplateRows = `repeat(4, 100px)`;
   boardElement.style.border = "none";
@@ -165,7 +191,7 @@ function render2048Board(gameStatus: string) {
     statusElement.innerHTML = `2048 - Use Arrow Keys to move tiles! <br> <strong>Score: ${score}</strong>`;
     resetButton.style.display = 'none';
   } else {
-    statusElement.innerHTML = `<strong style="font-size: 1.5rem;">🚨 Game Over - ${gameStatus} 🚨 <br> Final Score: ${score}</strong>`;
+    statusElement.innerHTML = `<strong style="font-size: 1.5rem;">${gameStatus}<br> Final Score: ${score}</strong>`;
     resetButton.style.display = 'block';
   }
 
@@ -194,16 +220,17 @@ function renderMinesweeperBoard(gameStatus: string) {
   const numRows = boardState.length;
   const numCols = boardState[0].length;
 
+  boardElement.style.display = 'grid';
   boardElement.style.gridTemplateColumns = `repeat(${numCols}, 40px)`;
   boardElement.style.gridTemplateRows = `repeat(${numRows}, 40px)`;
   boardElement.style.border = "8px solid #bdbdbd";
   boardElement.style.backgroundColor = "#bdbdbd";
 
   if (gameStatus === "Active") {
-    statusElement.textContent = `Minesweeper - Find all the safe squares! 💣`;
+    statusElement.textContent = `Minesweeper`;
     resetButton.style.display = 'none';
   } else {
-    statusElement.innerHTML = `<strong style="font-size: 1.5rem;">🚨 Game Over - ${gameStatus} 🚨</strong>`;
+    statusElement.innerHTML = `<strong style="font-size: 1.5rem;">${gameStatus}</strong>`;
     resetButton.style.display = 'block';
   }
 
@@ -232,7 +259,7 @@ function renderMinesweeperBoard(gameStatus: string) {
 
       const currentRow = row;
       const currentCol = col;
-      square.addEventListener('click', (e) => {
+      square.addEventListener('click', () => {
         if (gameStatus === "Active") {
           engine.reveal(currentRow, currentCol);
           renderBoard();
@@ -250,6 +277,99 @@ function renderMinesweeperBoard(gameStatus: string) {
       boardElement.appendChild(square);
     }
   }
+}
+
+let racingAnimationFrameId: number | null = null;
+let racingCanvas: HTMLCanvasElement | null = null;
+let racingCtx: CanvasRenderingContext2D | null = null;
+
+function stopRacingLoop() {
+  if (racingAnimationFrameId !== null) {
+    cancelAnimationFrame(racingAnimationFrameId);
+    racingAnimationFrameId = null;
+  }
+  if (racingCanvas && racingCanvas.parentElement) {
+    racingCanvas.parentElement.removeChild(racingCanvas);
+  }
+  racingCanvas = null;
+  racingCtx = null;
+  keys.up = false; keys.down = false; keys.left = false; keys.right = false;
+}
+
+function startRacingLoop() {
+  boardElement.innerHTML = '';
+  boardElement.style.display = 'block';
+  boardElement.style.border = '4px solid #333';
+  boardElement.style.padding = '0';
+  boardElement.style.backgroundColor = '#222';
+
+  racingCanvas = document.createElement('canvas');
+  racingCanvas.width = 800; // 20 tiles * 40px
+  racingCanvas.height = 600; // 15 tiles * 40px
+  racingCanvas.style.display = 'block';
+  racingCtx = racingCanvas.getContext('2d')!;
+  boardElement.appendChild(racingCanvas);
+
+  statusElement.textContent = `Racing - Use WASD or Arrows to drive!`;
+  resetButton.style.display = 'block';
+
+  function loop() {
+    if (currentGame !== "racing" || !engine) return;
+    engine.update(keys.up, keys.down, keys.left, keys.right);
+    renderRacingBoard();
+    racingAnimationFrameId = requestAnimationFrame(loop);
+  }
+  racingAnimationFrameId = requestAnimationFrame(loop);
+}
+
+function renderRacingBoard() {
+  if (!racingCtx || !engine) return;
+  const state = JSON.parse(engine.get_state_json());
+
+  // Draw track
+  for (let y = 0; y < state.height; y++) {
+    for (let x = 0; x < state.width; x++) {
+      const tile = state.track[y][x];
+      if (tile === "Grass") racingCtx.fillStyle = '#4caf50';
+      else if (tile === "Road") racingCtx.fillStyle = '#9e9e9e';
+      else racingCtx.fillStyle = '#607d8b'; // Wall
+
+      racingCtx.fillRect(x * 40, y * 40, 40, 40);
+
+      // Optional grid lines
+      racingCtx.strokeStyle = 'rgba(0,0,0,0.1)';
+      racingCtx.strokeRect(x * 40, y * 40, 40, 40);
+    }
+  }
+
+  // Draw Car
+  racingCtx.save();
+  racingCtx.translate(state.car.x, state.car.y);
+  racingCtx.rotate(state.car.angle);
+
+  // Car chassis
+  racingCtx.fillStyle = '#d32f2f'; // Red mini yonku style
+  racingCtx.fillRect(-12, -8, 24, 16);
+
+  // Windshield
+  racingCtx.fillStyle = '#e0f7fa';
+  racingCtx.fillRect(2, -5, 6, 10);
+
+  // Headlights
+  racingCtx.fillStyle = '#ffff00';
+  racingCtx.fillRect(10, -7, 3, 3);
+  racingCtx.fillRect(10, 4, 3, 3);
+
+  // Tires
+  racingCtx.fillStyle = '#212121';
+  racingCtx.fillRect(-10, -11, 8, 3); // Back left
+  racingCtx.fillRect(4, -11, 8, 3);   // Front left
+  racingCtx.fillRect(-10, 8, 8, 3);   // Back right
+  racingCtx.fillRect(4, 8, 8, 3);     // Front right
+
+  racingCtx.restore();
+
+  statusElement.innerHTML = `Racing - Speed: ${Math.abs(state.car.speed).toFixed(1)} km/h`;
 }
 
 function handleSquareClick(row: number, col: number, piece: Piece | null, isTarget: boolean, currentTurn: string) {
@@ -287,10 +407,11 @@ function handleSquareClick(row: number, col: number, piece: Piece | null, isTarg
   renderBoard();
 }
 
-async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048") {
+async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "racing") {
   currentGame = game;
   selectedSquare = null;
   validMovesForSelected = [];
+  stopRacingLoop(); // Clean up racing frame loop if it was active
 
   if (game === "chess") {
     engine = new ChessEngine();
@@ -300,12 +421,16 @@ async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048") {
     engine = new MinesweeperEngine();
   } else if (game === "2048") {
     engine = new Game2048Engine();
+  } else if (game === "racing") {
+    engine = new RacingGame();
+    startRacingLoop();
+    return; // Don't run standard renderBoard() which uses DOM grid
   }
   renderBoard();
 }
 
 gameSelector.addEventListener('change', (e) => {
-  const newGame = (e.target as HTMLSelectElement).value as "chess" | "janggi" | "minesweeper" | "2048";
+  const newGame = (e.target as HTMLSelectElement).value as "chess" | "janggi" | "minesweeper" | "2048" | "racing";
   loadGame(newGame);
 });
 
@@ -314,6 +439,7 @@ async function start() {
   await initJanggi();
   await initMinesweeper();
   await init2048();
+  await initRacing();
   loadGame("chess");
 }
 

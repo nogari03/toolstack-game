@@ -165,20 +165,34 @@ impl GameState {
             CellState::Revealed => {}
         }
         
+        self.check_win_condition();
+        
         Ok(())
     }
 
     fn check_win_condition(&mut self) {
         let mut revealed_count = 0;
+        let mut correct_flags = 0;
+        let mut incorrect_flags = 0;
+
         for r in 0..self.rows {
             for c in 0..self.cols {
                 if self.board[r][c].state == CellState::Revealed {
                     revealed_count += 1;
+                } else if self.board[r][c].state == CellState::Flagged {
+                    if self.board[r][c].is_mine {
+                        correct_flags += 1;
+                    } else {
+                        incorrect_flags += 1;
+                    }
                 }
             }
         }
         
-        if revealed_count == (self.rows * self.cols) - self.total_mines {
+        let won_by_reveal = revealed_count == (self.rows * self.cols) - self.total_mines;
+        let won_by_flags = correct_flags == self.total_mines && incorrect_flags == 0 && !self.first_click;
+        
+        if won_by_reveal || won_by_flags {
             self.status = GameStatus::Won;
         }
     }
