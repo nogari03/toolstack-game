@@ -17,6 +17,7 @@
     "janggi-wasm": "file:../wasm/janggi-wasm/pkg",
     "minesweeper-wasm": "file:../wasm/minesweeper-wasm/pkg",
     "game2048-wasm": "file:../wasm/2048-wasm/pkg",
-    "racing-wasm": "file:../wasm/racing-wasm/pkg"
+    "racing-wasm": "file:../wasm/racing-wasm/pkg",
+    "claw-wasm": "file:../wasm/claw-wasm/pkg"
   }
 }

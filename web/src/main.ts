@@ -4,6 +4,7 @@ import initJanggi, { GameEngine as JanggiEngine } from 'janggi-wasm'
 import initMinesweeper, { GameEngine as MinesweeperEngine } from 'minesweeper-wasm'
 import init2048, { GameEngine as Game2048Engine } from 'game2048-wasm'
 import initRacing, { RacingGame } from 'racing-wasm'
+import initClaw, { ClawGame } from 'claw-wasm'
 
 type Color = "White" | "Black" | "Cho" | "Han";
 type PieceType = "Pawn" | "Knight" | "Bishop" | "Rook" | "Queen" | "King" | "General" | "Advisor" | "Elephant" | "Horse" | "Chariot" | "Cannon" | "Soldier";
@@ -18,10 +19,10 @@ type Square = Piece | null;
 type BoardGrid = Square[][];
 
 let engine: any;
-let currentGame: "chess" | "janggi" | "minesweeper" | "2048" | "racing" = "chess";
+let currentGame: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw" = "chess";
 let selectedSquare: { row: number, col: number } | null = null;
 let validMovesForSelected: { row: number, col: number }[] = [];
-let keys = { up: false, down: false, left: false, right: false };
+let keys = { up: false, down: false, left: false, right: false, space: false };
 
 const boardElement = document.getElementById('board')!;
 const statusElement = document.getElementById('status')!;
@@ -48,6 +49,16 @@ window.addEventListener('keydown', (e) => {
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
   }
 
+  if (currentGame === "claw") {
+    if (["ArrowLeft", "a", "A"].includes(e.key)) keys.left = true;
+    if (["ArrowRight", "d", "D"].includes(e.key)) keys.right = true;
+    if (e.key === " " || e.key === "Spacebar") {
+      keys.space = true;
+      e.preventDefault();
+    }
+    if (["ArrowLeft", "ArrowRight"].includes(e.key)) e.preventDefault();
+  }
+
   if (currentGame === "2048" && engine) {
     const status = engine.get_status();
     if (status !== "Active") return;
@@ -72,6 +83,12 @@ window.addEventListener('keyup', (e) => {
     if (["ArrowDown", "s", "S"].includes(e.key)) keys.down = false;
     if (["ArrowLeft", "a", "A"].includes(e.key)) keys.left = false;
     if (["ArrowRight", "d", "D"].includes(e.key)) keys.right = false;
+  }
+
+  if (currentGame === "claw") {
+    if (["ArrowLeft", "a", "A"].includes(e.key)) keys.left = false;
+    if (["ArrowRight", "d", "D"].includes(e.key)) keys.right = false;
+    if (e.key === " " || e.key === "Spacebar") keys.space = false;
   }
 });
 
@@ -100,8 +117,8 @@ function renderBoard() {
     return;
   }
 
-  if (currentGame === "racing") {
-    return; // Racing has its own animation loop
+  if (currentGame === "racing" || currentGame === "claw") {
+    return; // Racing and Claw have their own animation loop
   }
 
   const boardState: BoardGrid = JSON.parse(engine.get_board_state());
@@ -283,6 +300,127 @@ let racingAnimationFrameId: number | null = null;
 let racingCanvas: HTMLCanvasElement | null = null;
 let racingCtx: CanvasRenderingContext2D | null = null;
 
+let clawAnimationFrameId: number | null = null;
+let clawCanvas: HTMLCanvasElement | null = null;
+let clawCtx: CanvasRenderingContext2D | null = null;
+
+function stopClawLoop() {
+  if (clawAnimationFrameId !== null) {
+    cancelAnimationFrame(clawAnimationFrameId);
+    clawAnimationFrameId = null;
+  }
+  if (clawCanvas && clawCanvas.parentElement) {
+    clawCanvas.parentElement.removeChild(clawCanvas);
+  }
+  clawCanvas = null;
+  clawCtx = null;
+  keys.space = false; keys.left = false; keys.right = false;
+}
+
+function startClawLoop() {
+  boardElement.innerHTML = '';
+  boardElement.style.display = 'block';
+  boardElement.style.border = '4px solid #333';
+  boardElement.style.padding = '0';
+  boardElement.style.backgroundColor = '#ddd';
+
+  clawCanvas = document.createElement('canvas');
+  clawCanvas.width = 800;
+  clawCanvas.height = 600;
+  clawCanvas.style.display = 'block';
+  clawCtx = clawCanvas.getContext('2d')!;
+  boardElement.appendChild(clawCanvas);
+
+  statusElement.innerHTML = `Claw Machine - Use Left/Right arrows to move, Space to drop!<br><strong>Score: 0</strong>`;
+  resetButton.style.display = 'block';
+
+  function loop() {
+    if (currentGame !== "claw" || !engine) return;
+    engine.update(keys.left, keys.right, keys.space);
+    renderClawBoard();
+    clawAnimationFrameId = requestAnimationFrame(loop);
+  }
+  clawAnimationFrameId = requestAnimationFrame(loop);
+}
+
+function renderClawBoard() {
+  if (!clawCtx || !engine) return;
+  const state = JSON.parse(engine.get_state_json());
+
+  // Background
+  clawCtx.fillStyle = '#f0f4f8';
+  clawCtx.fillRect(0, 0, state.width, state.height);
+
+  // Drop zone (HOME_X area)
+  clawCtx.fillStyle = '#cbd5e1';
+  clawCtx.fillRect(0, 0, 150, state.height);
+  clawCtx.fillStyle = '#94a3b8';
+  clawCtx.fillRect(60, state.height - 100, 80, 100); // Hole
+
+  // Toys
+  for (const toy of state.toys) {
+    clawCtx.fillStyle = toy.color;
+    // Draw toy as a rounded rect or circle with a bow
+    clawCtx.beginPath();
+    clawCtx.arc(toy.x + toy.width / 2, toy.y + toy.height / 2, toy.width / 2, 0, Math.PI * 2);
+    clawCtx.fill();
+
+    // Ribbon
+    clawCtx.fillStyle = '#ffffff';
+    clawCtx.fillRect(toy.x + toy.width / 2 - 2, toy.y, 4, toy.height);
+    clawCtx.fillRect(toy.x, toy.y + toy.height / 2 - 2, toy.width, 4);
+
+    // Add value text if possible
+    clawCtx.fillStyle = '#fff';
+    clawCtx.font = "bold 12px Arial";
+    clawCtx.textAlign = "center";
+    clawCtx.fillText(`$${toy.value}`, toy.x + toy.width / 2, toy.y + toy.height / 2 + 4);
+  }
+
+  // Draw Claw Base Line
+  clawCtx.strokeStyle = '#475569';
+  clawCtx.lineWidth = 4;
+  clawCtx.beginPath();
+  clawCtx.moveTo(state.claw_x + 30, 0); // 30 is CLAW_WIDTH / 2
+  clawCtx.lineTo(state.claw_x + 30, state.claw_y);
+  clawCtx.stroke();
+
+  // Draw Claw Grabber (Top box)
+  clawCtx.fillStyle = '#fbbf24'; // Golden claw base
+  clawCtx.fillRect(state.claw_x + 10, state.claw_y, 40, 20);
+
+  // Draw Grabber Prongs
+  clawCtx.strokeStyle = '#64748b'; // Silver prongs
+  clawCtx.lineWidth = 6;
+
+  let prongAngle = 0;
+  if (state.claw_state === "Dropping" || state.claw_state === "Raising" || state.claw_state === "Returning" || state.claw_state === "Releasing") {
+    prongAngle = 20; // Open
+  } else if (state.claw_state === "Idle") {
+    prongAngle = 20; // Open
+  } else if (state.claw_state === "Grabbing") {
+    prongAngle = 0; // Closed
+  }
+
+  // Left prong
+  clawCtx.beginPath();
+  clawCtx.moveTo(state.claw_x + 10, state.claw_y + 20);
+  clawCtx.lineTo(state.claw_x - prongAngle, state.claw_y + 60);
+  // hook inward
+  clawCtx.lineTo(state.claw_x + 10 - prongAngle, state.claw_y + 80);
+  clawCtx.stroke();
+
+  // Right prong
+  clawCtx.beginPath();
+  clawCtx.moveTo(state.claw_x + 50, state.claw_y + 20);
+  clawCtx.lineTo(state.claw_x + 60 + prongAngle, state.claw_y + 60);
+  // hook inward
+  clawCtx.lineTo(state.claw_x + 50 + prongAngle, state.claw_y + 80);
+  clawCtx.stroke();
+
+  statusElement.innerHTML = `Claw Machine - Use Left/Right arrows to move, Space to drop!<br><strong>Score: ${state.score}</strong>`;
+}
+
 function stopRacingLoop() {
   if (racingAnimationFrameId !== null) {
     cancelAnimationFrame(racingAnimationFrameId);
@@ -407,11 +545,12 @@ function handleSquareClick(row: number, col: number, piece: Piece | null, isTarg
   renderBoard();
 }
 
-async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "racing") {
+async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw") {
   currentGame = game;
   selectedSquare = null;
   validMovesForSelected = [];
   stopRacingLoop(); // Clean up racing frame loop if it was active
+  stopClawLoop();   // Clean up claw loop too
 
   if (game === "chess") {
     engine = new ChessEngine();
@@ -425,12 +564,16 @@ async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "rac
     engine = new RacingGame();
     startRacingLoop();
     return; // Don't run standard renderBoard() which uses DOM grid
+  } else if (game === "claw") {
+    engine = new ClawGame();
+    startClawLoop();
+    return;
   }
   renderBoard();
 }
 
 gameSelector.addEventListener('change', (e) => {
-  const newGame = (e.target as HTMLSelectElement).value as "chess" | "janggi" | "minesweeper" | "2048" | "racing";
+  const newGame = (e.target as HTMLSelectElement).value as "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw";
   loadGame(newGame);
 });
 
@@ -440,6 +583,7 @@ async function start() {
   await initMinesweeper();
   await init2048();
   await initRacing();
+  await initClaw();
   loadGame("chess");
 }
 
