@@ -75,3 +75,44 @@ h1 {
   font-size: 1.2rem;
   color: #888;
 }
+
+.square.mine-cell {
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+}
+
+.square.mine-hidden {
+  background-color: #bdbdbd;
+  border-top: 3px solid #ffffff;
+  border-left: 3px solid #ffffff;
+  border-right: 3px solid #7b7b7b;
+  border-bottom: 3px solid #7b7b7b;
+  box-sizing: border-box;
+}
+
+.square.mine-revealed {
+  background-color: #bdbdbd;
+  border: 1px solid #7b7b7b;
+  box-sizing: border-box;
+  font-weight: bold;
+}
+
+.square.mine-flagged {
+  background-color: #bdbdbd;
+  border-top: 3px solid #ffffff;
+  border-left: 3px solid #ffffff;
+  border-right: 3px solid #7b7b7b;
+  border-bottom: 3px solid #7b7b7b;
+  box-sizing: border-box;
+  color: red;
+}
+
+.mine-count-1 { color: blue; }
+.mine-count-2 { color: green; }
+.mine-count-3 { color: red; }
+.mine-count-4 { color: darkblue; }
+.mine-count-5 { color: darkred; }
+.mine-count-6 { color: darkcyan; }
+.mine-count-7 { color: black; }
+.mine-count-8 { color: dimgray; }

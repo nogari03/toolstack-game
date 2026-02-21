@@ -1,6 +1,7 @@
 import './style.css'
 import initChess, { GameEngine as ChessEngine } from 'chess-wasm'
 import initJanggi, { GameEngine as JanggiEngine } from 'janggi-wasm'
+import initMinesweeper, { GameEngine as MinesweeperEngine } from 'minesweeper-wasm'
 
 type Color = "White" | "Black" | "Cho" | "Han";
 type PieceType = "Pawn" | "Knight" | "Bishop" | "Rook" | "Queen" | "King" | "General" | "Advisor" | "Elephant" | "Horse" | "Chariot" | "Cannon" | "Soldier";
@@ -15,7 +16,7 @@ type Square = Piece | null;
 type BoardGrid = Square[][];
 
 let engine: any;
-let currentGame: "chess" | "janggi" = "chess";
+let currentGame: "chess" | "janggi" | "minesweeper" = "chess";
 let selectedSquare: { row: number, col: number } | null = null;
 let validMovesForSelected: { row: number, col: number }[] = [];
 
@@ -26,6 +27,11 @@ const resetButton = document.getElementById('reset-button') as HTMLButtonElement
 
 resetButton.addEventListener('click', () => {
   loadGame(currentGame);
+});
+
+// Disable context menu on board to support right click for flags
+boardElement.addEventListener('contextmenu', (e) => {
+  e.preventDefault();
 });
 
 const chessUnicodeMap: Record<string, Record<string, string>> = {
@@ -41,15 +47,23 @@ const janggiUnicodeMap: Record<string, Record<string, string>> = {
 function renderBoard() {
   boardElement.innerHTML = '';
 
+  const gameStatus: string = engine.get_status();
+
+  if (currentGame === "minesweeper") {
+    renderMinesweeperBoard(gameStatus);
+    return;
+  }
+
   const boardState: BoardGrid = JSON.parse(engine.get_board_state());
   const currentTurnInfo: Color = JSON.parse(engine.get_current_turn());
-  const gameStatus: string = engine.get_status();
 
   const numRows = boardState.length;
   const numCols = boardState[0].length;
 
   boardElement.style.gridTemplateColumns = `repeat(${numCols}, 60px)`;
   boardElement.style.gridTemplateRows = `repeat(${numRows}, 60px)`;
+  boardElement.style.border = "4px solid #333";
+  boardElement.style.backgroundColor = "";
 
   if (gameStatus === "Active") {
     statusElement.textContent = `Turn: ${currentGame === 'janggi' ? (currentTurnInfo === 'White' ? 'HAN (Red)' : 'CHO (Blue/Green)') : currentTurnInfo.toUpperCase()} - Verified by Rust Engine 🦀`;
@@ -107,6 +121,69 @@ function renderBoard() {
   }
 }
 
+function renderMinesweeperBoard(gameStatus: string) {
+  const boardState: any[][] = JSON.parse(engine.get_board_state());
+  const numRows = boardState.length;
+  const numCols = boardState[0].length;
+
+  boardElement.style.gridTemplateColumns = `repeat(${numCols}, 40px)`;
+  boardElement.style.gridTemplateRows = `repeat(${numRows}, 40px)`;
+  boardElement.style.border = "8px solid #bdbdbd";
+  boardElement.style.backgroundColor = "#bdbdbd";
+
+  if (gameStatus === "Active") {
+    statusElement.textContent = `Minesweeper - Find all the safe squares! 💣`;
+    resetButton.style.display = 'none';
+  } else {
+    statusElement.innerHTML = `<strong style="font-size: 1.5rem;">🚨 Game Over - ${gameStatus} 🚨</strong>`;
+    resetButton.style.display = 'block';
+  }
+
+  for (let row = 0; row < numRows; row++) {
+    for (let col = 0; col < numCols; col++) {
+      const square = document.createElement('div');
+      const cell = boardState[row][col];
+
+      square.className = 'square mine-cell';
+
+      if (cell.state === "Hidden") {
+        square.classList.add('mine-hidden');
+      } else if (cell.state === "Flagged") {
+        square.classList.add('mine-flagged');
+        square.textContent = '🚩';
+      } else if (cell.state === "Revealed") {
+        square.classList.add('mine-revealed');
+        if (cell.is_mine) {
+          square.textContent = '💣';
+          square.style.backgroundColor = 'red';
+        } else if (cell.adjacent_mines > 0) {
+          square.textContent = cell.adjacent_mines.toString();
+          square.classList.add(`mine-count-${cell.adjacent_mines}`);
+        }
+      }
+
+      const currentRow = row;
+      const currentCol = col;
+      square.addEventListener('click', (e) => {
+        if (gameStatus === "Active") {
+          engine.reveal(currentRow, currentCol);
+          renderBoard();
+        }
+      });
+
+      square.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        if (gameStatus === "Active") {
+          engine.toggle_flag(currentRow, currentCol);
+          renderBoard();
+        }
+      });
+
+      boardElement.appendChild(square);
+    }
+  }
+}
+
 function handleSquareClick(row: number, col: number, piece: Piece | null, isTarget: boolean, currentTurn: string) {
   if (isTarget && selectedSquare) {
     const msg = engine.move_piece(selectedSquare.row, selectedSquare.col, row, col);
@@ -142,27 +219,30 @@ function handleSquareClick(row: number, col: number, piece: Piece | null, isTarg
   renderBoard();
 }
 
-async function loadGame(game: "chess" | "janggi") {
+async function loadGame(game: "chess" | "janggi" | "minesweeper") {
   currentGame = game;
   selectedSquare = null;
   validMovesForSelected = [];
 
   if (game === "chess") {
     engine = new ChessEngine();
-  } else {
+  } else if (game === "janggi") {
     engine = new JanggiEngine();
+  } else if (game === "minesweeper") {
+    engine = new MinesweeperEngine();
   }
   renderBoard();
 }
 
 gameSelector.addEventListener('change', (e) => {
-  const newGame = (e.target as HTMLSelectElement).value as "chess" | "janggi";
+  const newGame = (e.target as HTMLSelectElement).value as "chess" | "janggi" | "minesweeper";
   loadGame(newGame);
 });
 
 async function start() {
   await initChess();
   await initJanggi();
+  await initMinesweeper();
   loadGame("chess");
 }
 
