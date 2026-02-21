@@ -2,6 +2,7 @@ import './style.css'
 import initChess, { GameEngine as ChessEngine } from 'chess-wasm'
 import initJanggi, { GameEngine as JanggiEngine } from 'janggi-wasm'
 import initMinesweeper, { GameEngine as MinesweeperEngine } from 'minesweeper-wasm'
+import init2048, { GameEngine as Game2048Engine } from 'game2048-wasm'
 
 type Color = "White" | "Black" | "Cho" | "Han";
 type PieceType = "Pawn" | "Knight" | "Bishop" | "Rook" | "Queen" | "King" | "General" | "Advisor" | "Elephant" | "Horse" | "Chariot" | "Cannon" | "Soldier";
@@ -16,7 +17,7 @@ type Square = Piece | null;
 type BoardGrid = Square[][];
 
 let engine: any;
-let currentGame: "chess" | "janggi" | "minesweeper" = "chess";
+let currentGame: "chess" | "janggi" | "minesweeper" | "2048" = "chess";
 let selectedSquare: { row: number, col: number } | null = null;
 let validMovesForSelected: { row: number, col: number }[] = [];
 
@@ -32,6 +33,26 @@ resetButton.addEventListener('click', () => {
 // Disable context menu on board to support right click for flags
 boardElement.addEventListener('contextmenu', (e) => {
   e.preventDefault();
+});
+
+// Key bindings for 2048
+window.addEventListener('keydown', (e) => {
+  if (currentGame === "2048" && engine) {
+    const status = engine.get_status();
+    if (status !== "Active") return;
+
+    let direction = null;
+    if (e.key === "ArrowUp" || e.key === "w" || e.key === "W") direction = "Up";
+    if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") direction = "Down";
+    if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") direction = "Left";
+    if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") direction = "Right";
+
+    if (direction) {
+      e.preventDefault();
+      engine.execute_move(direction);
+      renderBoard();
+    }
+  }
 });
 
 const chessUnicodeMap: Record<string, Record<string, string>> = {
@@ -54,6 +75,11 @@ function renderBoard() {
     return;
   }
 
+  if (currentGame === "2048") {
+    render2048Board(gameStatus);
+    return;
+  }
+
   const boardState: BoardGrid = JSON.parse(engine.get_board_state());
   const currentTurnInfo: Color = JSON.parse(engine.get_current_turn());
 
@@ -64,12 +90,14 @@ function renderBoard() {
   boardElement.style.gridTemplateRows = `repeat(${numRows}, 60px)`;
   boardElement.style.border = "4px solid #333";
   boardElement.style.backgroundColor = "";
+  boardElement.style.gap = "0px";
+  boardElement.style.padding = "0px";
 
   if (gameStatus === "Active") {
     statusElement.textContent = `Turn: ${currentGame === 'janggi' ? (currentTurnInfo === 'White' ? 'HAN (Red)' : 'CHO (Blue/Green)') : currentTurnInfo.toUpperCase()} - Verified by Rust Engine 🦀`;
     resetButton.style.display = 'none';
   } else {
-    statusElement.innerHTML = `<strong style="color:var(--focus-color); font-size: 1.5rem;">🚨 Game Over - ${gameStatus} 🚨</strong>`;
+    statusElement.innerHTML = `< strong style = "color:var(--focus-color); font-size: 1.5rem;" >🚨 Game Over - ${gameStatus} 🚨</strong>`;
     resetButton.style.display = 'block';
   }
 
@@ -121,7 +149,47 @@ function renderBoard() {
   }
 }
 
+function render2048Board(gameStatus: string) {
+  const boardState: number[][] = JSON.parse(engine.get_board_state());
+  const score = engine.get_score();
+
+  boardElement.style.gridTemplateColumns = `repeat(4, 100px)`;
+  boardElement.style.gridTemplateRows = `repeat(4, 100px)`;
+  boardElement.style.border = "none";
+  boardElement.style.backgroundColor = "#bbada0";
+  boardElement.style.gap = "10px";
+  boardElement.style.padding = "10px";
+  boardElement.style.borderRadius = "8px";
+
+  if (gameStatus === "Active") {
+    statusElement.innerHTML = `2048 - Use Arrow Keys to move tiles! <br> <strong>Score: ${score}</strong>`;
+    resetButton.style.display = 'none';
+  } else {
+    statusElement.innerHTML = `<strong style="font-size: 1.5rem;">🚨 Game Over - ${gameStatus} 🚨 <br> Final Score: ${score}</strong>`;
+    resetButton.style.display = 'block';
+  }
+
+  for (let row = 0; row < 4; row++) {
+    for (let col = 0; col < 4; col++) {
+      const square = document.createElement('div');
+      const val = boardState[row][col];
+
+      square.className = 'square game-2048-cell';
+      if (val > 0) {
+        square.textContent = val.toString();
+        square.classList.add(`val-${val}`);
+      }
+
+      boardElement.appendChild(square);
+    }
+  }
+}
+
 function renderMinesweeperBoard(gameStatus: string) {
+  // ... existing code, just reset the gap/padding if we switch back
+  boardElement.style.gap = "0px";
+  boardElement.style.padding = "0px";
+
   const boardState: any[][] = JSON.parse(engine.get_board_state());
   const numRows = boardState.length;
   const numCols = boardState[0].length;
@@ -219,7 +287,7 @@ function handleSquareClick(row: number, col: number, piece: Piece | null, isTarg
   renderBoard();
 }
 
-async function loadGame(game: "chess" | "janggi" | "minesweeper") {
+async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048") {
   currentGame = game;
   selectedSquare = null;
   validMovesForSelected = [];
@@ -230,12 +298,14 @@ async function loadGame(game: "chess" | "janggi" | "minesweeper") {
     engine = new JanggiEngine();
   } else if (game === "minesweeper") {
     engine = new MinesweeperEngine();
+  } else if (game === "2048") {
+    engine = new Game2048Engine();
   }
   renderBoard();
 }
 
 gameSelector.addEventListener('change', (e) => {
-  const newGame = (e.target as HTMLSelectElement).value as "chess" | "janggi" | "minesweeper";
+  const newGame = (e.target as HTMLSelectElement).value as "chess" | "janggi" | "minesweeper" | "2048";
   loadGame(newGame);
 });
 
@@ -243,6 +313,7 @@ async function start() {
   await initChess();
   await initJanggi();
   await initMinesweeper();
+  await init2048();
   loadGame("chess");
 }
 
