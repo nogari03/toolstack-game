@@ -22,7 +22,9 @@ type BoardGrid = Square[][];
 let engine: any;
 let currentGame: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw" = "chess";
 let currentMinesweeperDiff: "beginner" | "intermediate" | "expert" = "beginner";
+let currentAiModeStatus: { enabled: boolean, depth: number } = { enabled: false, depth: 1 };
 let selectedSquare: { row: number, col: number } | null = null;
+let lastMove: { fr: number, fc: number, tr: number, tc: number } | null = null;
 let validMovesForSelected: { row: number, col: number }[] = [];
 let keys = { up: false, down: false, left: false, right: false, space: false };
 let gameEndedRecorded: boolean = false;
@@ -177,7 +179,7 @@ function renderBoard() {
     statusElement.textContent = `Turn: ${currentGame === 'janggi' ? (currentTurnInfo === 'White' ? 'HAN (Red)' : 'CHO (Blue/Green)') : currentTurnInfo.toUpperCase()}`;
     resetButton.style.display = 'none';
   } else {
-    statusElement.innerHTML = `< strong style = "color:var(--focus-color); font-size: 1.5rem;" >${gameStatus}</strong>`;
+    statusElement.innerHTML = `${gameStatus}`;
     resetButton.style.display = 'block';
 
     if (!gameEndedRecorded) {
@@ -205,6 +207,10 @@ function renderBoard() {
       if (currentGame === "janggi") {
         square.style.backgroundColor = "#eebb77"; // Wood tone
         square.style.border = "1px solid #7a5022";
+      }
+
+      if (lastMove && (lastMove.tr === row && lastMove.tc === col)) {
+        square.style.backgroundColor = currentGame === "janggi" ? "#cfa964" : "#f1c40f";
       }
 
       if (selectedSquare?.row === row && selectedSquare?.col === col) {
@@ -595,6 +601,25 @@ function renderRacingBoard() {
   statusElement.innerHTML = `Racing - Speed: ${Math.abs(state.car.speed).toFixed(1)} km/h`;
 }
 
+function triggerAIMove() {
+  const gameStatus: string = engine.get_status();
+  if (gameStatus !== "Active") return;
+
+  if (!currentAiModeStatus.enabled) return;
+
+  statusElement.innerHTML = `<strong>AI is thinking...</strong>`;
+
+  setTimeout(() => {
+    const bestMoveStr = engine.get_best_move(currentAiModeStatus.depth);
+    if (bestMoveStr !== "null") {
+      const move = JSON.parse(bestMoveStr);
+      lastMove = { fr: move.fr, fc: move.fc, tr: move.tr, tc: move.tc };
+      engine.move_piece(move.fr, move.fc, move.tr, move.tc);
+      renderBoard();
+    }
+  }, 50);
+}
+
 function handleSquareClick(row: number, col: number, piece: Piece | null, isTarget: boolean, currentTurn: string) {
   if (isTarget && selectedSquare) {
     const msg = engine.move_piece(selectedSquare.row, selectedSquare.col, row, col);
@@ -602,11 +627,22 @@ function handleSquareClick(row: number, col: number, piece: Piece | null, isTarg
 
     if (!response.success) {
       console.error("Wasm rejected move: " + response.message);
+    } else {
+      lastMove = { fr: selectedSquare.row, fc: selectedSquare.col, tr: row, tc: col };
     }
 
     selectedSquare = null;
     validMovesForSelected = [];
     renderBoard();
+
+    if (currentAiModeStatus.enabled && response.success) {
+      const newTurnInfo = JSON.parse(engine.get_current_turn());
+      if ((currentGame === "chess" && newTurnInfo === "Black") ||
+        (currentGame === "janggi" && newTurnInfo === "White")) {
+        triggerAIMove();
+      }
+    }
+
     return;
   }
 
@@ -715,9 +751,64 @@ function showMinesweeperMenu() {
   });
 }
 
+function showAIMenu(gameType: "chess" | "janggi") {
+  boardElement.style.display = 'flex';
+  boardElement.style.flexDirection = 'column';
+  boardElement.style.justifyContent = 'center';
+  boardElement.style.alignItems = 'center';
+  boardElement.style.gap = '20px';
+  boardElement.style.width = '400px';
+  boardElement.style.height = '400px';
+  boardElement.style.backgroundColor = 'var(--win-window-bg)';
+  boardElement.style.border = '4px solid var(--win-border-light)';
+  boardElement.style.boxShadow = 'inset 1px 1px var(--win-border-dark), inset -1px -1px var(--win-border-white)';
+
+  const gameName = gameType === "chess" ? "Chess" : "Janggi";
+  statusElement.textContent = `Start ${gameName}`;
+  resetButton.style.display = 'none';
+
+  boardElement.innerHTML = `
+    <h3 style="margin: 0; color: var(--win-text);">Start ${gameName}</h3>
+    <button class="ai-start-btn" data-ai="false" style="width: 250px; text-align: center; border: 2px solid; border-color: var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white); background: var(--win-window-bg); color: var(--win-text); padding: 8px; cursor: pointer; font-family: inherit; font-size: 1rem;">Player vs Player (Local)</button>
+    <div style="width: 250px; height: 1px; background: var(--win-border-dark); margin: 5px 0;"></div>
+    <button class="ai-start-btn" data-ai="true" data-depth="1" style="width: 250px; text-align: center; border: 2px solid; border-color: var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white); background: var(--win-window-bg); color: var(--win-text); padding: 8px; cursor: pointer; font-family: inherit; font-size: 1rem;">Play vs AI (Easy)</button>
+    <button class="ai-start-btn" data-ai="true" data-depth="2" style="width: 250px; text-align: center; border: 2px solid; border-color: var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white); background: var(--win-window-bg); color: var(--win-text); padding: 8px; cursor: pointer; font-family: inherit; font-size: 1rem;">Play vs AI (Medium)</button>
+    <button class="ai-start-btn" data-ai="true" data-depth="3" style="width: 250px; text-align: center; border: 2px solid; border-color: var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white); background: var(--win-window-bg); color: var(--win-text); padding: 8px; cursor: pointer; font-family: inherit; font-size: 1rem;">Play vs AI (Hard)</button>
+  `;
+
+  const btns = boardElement.querySelectorAll('.ai-start-btn');
+  btns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const ai = (e.currentTarget as HTMLButtonElement).getAttribute('data-ai') === 'true';
+      const depth = parseInt((e.currentTarget as HTMLButtonElement).getAttribute('data-depth') || '1');
+
+      currentAiModeStatus = { enabled: ai, depth: depth };
+
+      if (gameType === "chess") {
+        engine = new ChessEngine();
+      } else {
+        engine = new JanggiEngine();
+      }
+
+      renderBoard();
+    });
+    // Add pressed look
+    btn.addEventListener('mousedown', (e) => {
+      (e.currentTarget as HTMLElement).style.borderColor = 'var(--win-border-dark) var(--win-border-white) var(--win-border-white) var(--win-border-dark)';
+    });
+    btn.addEventListener('mouseup', (e) => {
+      (e.currentTarget as HTMLElement).style.borderColor = 'var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white)';
+    });
+    btn.addEventListener('mouseleave', (e) => {
+      (e.currentTarget as HTMLElement).style.borderColor = 'var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white)';
+    });
+  });
+}
+
 async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw") {
   currentGame = game;
   selectedSquare = null;
+  lastMove = null;
   validMovesForSelected = [];
   gameEndedRecorded = false;
   updateLeaderboardDisplay();
@@ -725,10 +816,10 @@ async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "rac
   stopRacingLoop(); // Clean up racing frame loop if it was active
   stopClawLoop();   // Clean up claw loop too
 
-  if (game === "chess") {
-    engine = new ChessEngine();
-  } else if (game === "janggi") {
-    engine = new JanggiEngine();
+  if (game === "chess" || game === "janggi") {
+    engine = null;
+    showAIMenu(game);
+    return;
   } else if (game === "minesweeper") {
     engine = null;
     showMinesweeperMenu();

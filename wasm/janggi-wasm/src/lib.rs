@@ -65,4 +65,16 @@ impl GameEngine {
             }
         }
     }
+
+    pub fn get_best_move(&self, depth: u8) -> String {
+        if let Some(((fr, fc), (tr, tc))) = crate::rules::get_best_move(&self.state, depth, self.state.current_turn) {
+            let obj = js_sys::Object::new();
+            js_sys::Reflect::set(&obj, &"fr".into(), &JsValue::from(fr as u32)).unwrap();
+            js_sys::Reflect::set(&obj, &"fc".into(), &JsValue::from(fc as u32)).unwrap();
+            js_sys::Reflect::set(&obj, &"tr".into(), &JsValue::from(tr as u32)).unwrap();
+            js_sys::Reflect::set(&obj, &"tc".into(), &JsValue::from(tc as u32)).unwrap();
+            return js_sys::JSON::stringify(&obj).unwrap().into();
+        }
+        "null".to_string()
+    }
 }

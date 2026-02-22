@@ -42,12 +42,31 @@ impl GameState {
             for r in 0..8 {
                 for c in 0..8 {
                     if self.is_valid_move(row, col, r, c) {
-                        valid_moves.push((r, c));
+                        if !self.would_be_in_check(row, col, r, c) {
+                            valid_moves.push((r, c));
+                        }
                     }
                 }
             }
         }
         valid_moves
+    }
+
+    pub fn get_all_legal_moves(&self, color: Color) -> Vec<((usize, usize), (usize, usize))> {
+        let mut all_moves = Vec::new();
+        for r in 0..8 {
+            for c in 0..8 {
+                if let Some(p) = self.board[r][c] {
+                    if p.color == color {
+                        let moves = self.get_valid_moves(r, c);
+                        for m in moves {
+                            all_moves.push(((r, c), m));
+                        }
+                    }
+                }
+            }
+        }
+        all_moves
     }
 
     pub fn is_valid_move(&self, from_row: usize, from_col: usize, to_row: usize, to_col: usize) -> bool {
@@ -316,6 +335,9 @@ impl GameState {
         if !self.is_valid_move(fr, fc, tr, tc) {
             return Err("Invalid move");
         }
+        if self.would_be_in_check(fr, fc, tr, tc) {
+            return Err("Move would put or leave king in check");
+        }
 
         let mut piece = self.board[fr][fc].unwrap();
         piece.has_moved = true;
@@ -327,4 +349,103 @@ impl GameState {
         
         Ok(())
     }
+
+    pub fn evaluate(&self) -> i32 {
+        let mut score = 0;
+        for r in 0..8 {
+            for c in 0..8 {
+                if let Some(p) = self.board[r][c] {
+                    let val = match p.piece_type {
+                        PieceType::Pawn => 10,
+                        PieceType::Knight => 30,
+                        PieceType::Bishop => 30,
+                        PieceType::Rook => 50,
+                        PieceType::Queen => 90,
+                        PieceType::King => 900,
+                    };
+                    if p.color == Color::White {
+                        score += val;
+                    } else {
+                        score -= val;
+                    }
+                }
+            }
+        }
+        score
+    }
+}
+
+pub fn minimax(state: &mut GameState, depth: u8, mut alpha: i32, mut beta: i32, is_maximizing: bool) -> i32 {
+    let status = state.get_status();
+    if status.contains("Black Wins") { return -10000; }
+    if status.contains("White Wins") { return 10000; }
+    if status.contains("Draw") { return 0; }
+    if depth == 0 { return state.evaluate(); }
+
+    if is_maximizing {
+        let mut max_eval = i32::MIN;
+        let moves = state.get_all_legal_moves(Color::White);
+        for ((fr, fc), (tr, tc)) in moves {
+            let mut next_state = GameState { board: state.board, current_turn: state.current_turn };
+            if next_state.move_piece(fr, fc, tr, tc).is_ok() {
+                let eval = minimax(&mut next_state, depth - 1, alpha, beta, false);
+                max_eval = max_eval.max(eval);
+                alpha = alpha.max(eval);
+                if beta <= alpha { break; }
+            }
+        }
+        max_eval
+    } else {
+        let mut min_eval = i32::MAX;
+        let moves = state.get_all_legal_moves(Color::Black);
+        for ((fr, fc), (tr, tc)) in moves {
+            let mut next_state = GameState { board: state.board, current_turn: state.current_turn };
+            if next_state.move_piece(fr, fc, tr, tc).is_ok() {
+                let eval = minimax(&mut next_state, depth - 1, alpha, beta, true);
+                min_eval = min_eval.min(eval);
+                beta = beta.min(eval);
+                if beta <= alpha { break; }
+            }
+        }
+        min_eval
+    }
+}
+
+pub fn get_best_move(state: &GameState, depth: u8, color: Color) -> Option<((usize, usize), (usize, usize))> {
+    let moves = state.get_all_legal_moves(color);
+    if moves.is_empty() { return None; }
+
+    let mut best_move = None;
+    let mut alpha = i32::MIN;
+    let mut beta = i32::MAX;
+
+    if color == Color::White {
+        let mut max_eval = i32::MIN;
+        for ((fr, fc), (tr, tc)) in moves {
+            let mut next_state = GameState { board: state.board, current_turn: state.current_turn };
+            if next_state.move_piece(fr, fc, tr, tc).is_ok() {
+                let eval = minimax(&mut next_state, depth - 1, alpha, beta, false);
+                if eval > max_eval {
+                    max_eval = eval;
+                    best_move = Some(((fr, fc), (tr, tc)));
+                }
+                alpha = alpha.max(eval);
+            }
+        }
+    } else {
+        let mut min_eval = i32::MAX;
+        for ((fr, fc), (tr, tc)) in moves {
+            let mut next_state = GameState { board: state.board, current_turn: state.current_turn };
+            if next_state.move_piece(fr, fc, tr, tc).is_ok() {
+                let eval = minimax(&mut next_state, depth - 1, alpha, beta, true);
+                if eval < min_eval {
+                    min_eval = eval;
+                    best_move = Some(((fr, fc), (tr, tc)));
+                }
+                beta = beta.min(eval);
+            }
+        }
+    }
+
+    best_move
 }
