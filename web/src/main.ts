@@ -21,6 +21,7 @@ type BoardGrid = Square[][];
 
 let engine: any;
 let currentGame: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw" = "chess";
+let currentMinesweeperDiff: "beginner" | "intermediate" | "expert" = "beginner";
 let selectedSquare: { row: number, col: number } | null = null;
 let validMovesForSelected: { row: number, col: number }[] = [];
 let keys = { up: false, down: false, left: false, right: false, space: false };
@@ -34,9 +35,35 @@ if (!guestUserId) {
 
 const boardElement = document.getElementById('board')!;
 const statusElement = document.getElementById('status')!;
-const gameSelector = document.getElementById('game-selector') as HTMLSelectElement;
+const menuButtons = document.querySelectorAll('.menu-btn');
 const resetButton = document.getElementById('reset-button') as HTMLButtonElement;
 const leaderboardList = document.getElementById('leaderboard-list')!;
+const themeToggleBtn = document.getElementById('theme-toggle') as HTMLButtonElement;
+const syncBtn = document.getElementById('sync-leaderboard-btn') as HTMLButtonElement;
+
+syncBtn.addEventListener('click', () => {
+  alert("서비스 준비중 입니다");
+});
+
+// Theme toggle logic
+let isDarkMode = localStorage.getItem('theme') === 'dark';
+if (isDarkMode) {
+  document.documentElement.setAttribute('data-theme', 'dark');
+  themeToggleBtn.textContent = '☀️ Light Mode';
+}
+
+themeToggleBtn.addEventListener('click', () => {
+  isDarkMode = !isDarkMode;
+  if (isDarkMode) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+    themeToggleBtn.textContent = '☀️ Light Mode';
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+    themeToggleBtn.textContent = '🌙 Dark Mode';
+  }
+});
 
 resetButton.addEventListener('click', () => {
   loadGame(currentGame);
@@ -143,6 +170,8 @@ function renderBoard() {
   boardElement.style.backgroundColor = "";
   boardElement.style.gap = "0px";
   boardElement.style.padding = "0px";
+  boardElement.style.width = "auto";
+  boardElement.style.height = "auto";
 
   if (gameStatus === "Active") {
     statusElement.textContent = `Turn: ${currentGame === 'janggi' ? (currentTurnInfo === 'White' ? 'HAN (Red)' : 'CHO (Blue/Green)') : currentTurnInfo.toUpperCase()}`;
@@ -226,6 +255,8 @@ function render2048Board(gameStatus: string) {
   boardElement.style.gap = "10px";
   boardElement.style.padding = "10px";
   boardElement.style.borderRadius = "8px";
+  boardElement.style.width = "auto";
+  boardElement.style.height = "auto";
 
   if (gameStatus === "Active") {
     statusElement.innerHTML = `2048 - Use Arrow Keys to move tiles! <br> <strong>Score: ${score}</strong>`;
@@ -263,9 +294,14 @@ function render2048Board(gameStatus: string) {
 }
 
 function renderMinesweeperBoard(gameStatus: string) {
+  // If no engine, it means we are at the main menu, rendering is handled there
+  if (!engine) return;
+
   // ... existing code, just reset the gap/padding if we switch back
   boardElement.style.gap = "0px";
   boardElement.style.padding = "0px";
+  boardElement.style.width = "auto";
+  boardElement.style.height = "auto";
 
   const boardState: any[][] = JSON.parse(engine.get_board_state());
   const numRows = boardState.length;
@@ -278,7 +314,7 @@ function renderMinesweeperBoard(gameStatus: string) {
   boardElement.style.backgroundColor = "#bdbdbd";
 
   if (gameStatus === "Active") {
-    statusElement.textContent = `Minesweeper`;
+    statusElement.textContent = `Minesweeper (${currentMinesweeperDiff})`;
     resetButton.style.display = 'none';
   } else {
     statusElement.innerHTML = `<strong style="font-size: 1.5rem;">${gameStatus}</strong>`;
@@ -286,8 +322,9 @@ function renderMinesweeperBoard(gameStatus: string) {
 
     if (!gameEndedRecorded) {
       gameEndedRecorded = true;
+      let recordGameName = `minesweeper-${currentMinesweeperDiff}`;
       LeaderboardAPI.saveRecord({
-        game: currentGame,
+        game: recordGameName,
         userId: guestUserId,
         result: gameStatus === "Won" ? "Win" : "Lose",
         date: new Date().toISOString()
@@ -367,6 +404,8 @@ function startClawLoop() {
   boardElement.style.border = '4px solid #333';
   boardElement.style.padding = '0';
   boardElement.style.backgroundColor = '#ddd';
+  boardElement.style.width = 'auto';
+  boardElement.style.height = 'auto';
 
   clawCanvas = document.createElement('canvas');
   clawCanvas.width = 800;
@@ -484,6 +523,8 @@ function startRacingLoop() {
   boardElement.style.border = '4px solid #333';
   boardElement.style.padding = '0';
   boardElement.style.backgroundColor = '#222';
+  boardElement.style.width = 'auto';
+  boardElement.style.height = 'auto';
 
   racingCanvas = document.createElement('canvas');
   racingCanvas.width = 800; // 20 tiles * 40px
@@ -591,7 +632,11 @@ function handleSquareClick(row: number, col: number, piece: Piece | null, isTarg
 
 async function updateLeaderboardDisplay() {
   if (!leaderboardList) return;
-  const records = await LeaderboardAPI.getRecords(currentGame);
+  let queryGameId = currentGame as string;
+  if (currentGame === "minesweeper") {
+    queryGameId = `minesweeper-${currentMinesweeperDiff}`;
+  }
+  const records = await LeaderboardAPI.getRecords(queryGameId);
   leaderboardList.innerHTML = '';
 
   if (records.length === 0) {
@@ -620,6 +665,56 @@ async function updateLeaderboardDisplay() {
   });
 }
 
+function showMinesweeperMenu() {
+  boardElement.style.display = 'flex';
+  boardElement.style.flexDirection = 'column';
+  boardElement.style.justifyContent = 'center';
+  boardElement.style.alignItems = 'center';
+  boardElement.style.gap = '20px';
+  boardElement.style.width = '400px';
+  boardElement.style.height = '400px';
+  boardElement.style.backgroundColor = 'var(--win-window-bg)';
+  boardElement.style.border = '4px solid var(--win-border-light)';
+  boardElement.style.boxShadow = 'inset 1px 1px var(--win-border-dark), inset -1px -1px var(--win-border-white)';
+
+  statusElement.textContent = `Select Difficulty`;
+  resetButton.style.display = 'none';
+
+  boardElement.innerHTML = `
+    <h3 style="margin: 0; color: var(--win-text);">Select Difficulty</h3>
+    <button class="ms-diff-btn" data-diff="beginner" style="width: 250px; text-align: center; border: 2px solid; border-color: var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white); background: var(--win-window-bg); color: var(--win-text); padding: 8px; cursor: pointer; font-family: inherit; font-size: 1rem;">Easy</button>
+    <button class="ms-diff-btn" data-diff="intermediate" style="width: 250px; text-align: center; border: 2px solid; border-color: var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white); background: var(--win-window-bg); color: var(--win-text); padding: 8px; cursor: pointer; font-family: inherit; font-size: 1rem;">Medium</button>
+    <button class="ms-diff-btn" data-diff="expert" style="width: 250px; text-align: center; border: 2px solid; border-color: var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white); background: var(--win-window-bg); color: var(--win-text); padding: 8px; cursor: pointer; font-family: inherit; font-size: 1rem;">Hard</button>
+  `;
+
+  const btns = boardElement.querySelectorAll('.ms-diff-btn');
+  btns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const diff = (e.currentTarget as HTMLButtonElement).getAttribute('data-diff') as any;
+      currentMinesweeperDiff = diff;
+      if (diff === 'expert') {
+        engine = MinesweeperEngine.new_expert();
+      } else if (diff === 'intermediate') {
+        engine = MinesweeperEngine.new_intermediate();
+      } else {
+        engine = MinesweeperEngine.new_beginner();
+      }
+
+      renderBoard();
+    });
+    // Add pressed look
+    btn.addEventListener('mousedown', (e) => {
+      (e.currentTarget as HTMLElement).style.borderColor = 'var(--win-border-dark) var(--win-border-white) var(--win-border-white) var(--win-border-dark)';
+    });
+    btn.addEventListener('mouseup', (e) => {
+      (e.currentTarget as HTMLElement).style.borderColor = 'var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white)';
+    });
+    btn.addEventListener('mouseleave', (e) => {
+      (e.currentTarget as HTMLElement).style.borderColor = 'var(--win-border-white) var(--win-border-dark) var(--win-border-dark) var(--win-border-white)';
+    });
+  });
+}
+
 async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw") {
   currentGame = game;
   selectedSquare = null;
@@ -635,7 +730,9 @@ async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "rac
   } else if (game === "janggi") {
     engine = new JanggiEngine();
   } else if (game === "minesweeper") {
-    engine = new MinesweeperEngine();
+    engine = null;
+    showMinesweeperMenu();
+    return; // Stop here, rendering triggers via the menu
   } else if (game === "2048") {
     engine = new Game2048Engine();
   } else if (game === "racing") {
@@ -650,9 +747,20 @@ async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "rac
   renderBoard();
 }
 
-gameSelector.addEventListener('change', (e) => {
-  const newGame = (e.target as HTMLSelectElement).value as "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw";
-  loadGame(newGame);
+menuButtons.forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    // Remove active class from all
+    menuButtons.forEach(b => b.classList.remove('active'));
+    // Add to clicked
+    const target = e.currentTarget as HTMLButtonElement;
+    target.classList.add('active');
+
+    const newGame = target.getAttribute('data-game') as "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw";
+
+    if (newGame) {
+      loadGame(newGame);
+    }
+  });
 });
 
 async function start() {

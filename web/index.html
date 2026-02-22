@@ -9,18 +9,21 @@
 </head>
 
 <body>
+  <button id="theme-toggle">🌙 Dark Mode</button>
   <div id="app">
     <h1>Wasm Board Games</h1>
-    <div id="controls" style="margin-bottom: 20px;">
-      <label for="game-selector">Select Game: </label>
-      <select id="game-selector">
-        <option value="chess">Chess</option>
-        <option value="janggi">Janggi</option>
-        <option value="minesweeper">Minesweeper</option>
-        <option value="2048">2048</option>
-        <option value="racing">Racing</option>
-        <option value="claw">Claw Machine</option>
-      </select>
+    <div id="game-menu" class="win95-menu">
+      <div class="notice-header">
+        <h3>Game Select</h3>
+      </div>
+      <div class="menu-body">
+        <button class="menu-btn active" data-game="chess">Chess</button>
+        <button class="menu-btn" data-game="janggi">Janggi</button>
+        <button class="menu-btn" data-game="minesweeper">Minesweeper</button>
+        <button class="menu-btn" data-game="2048">2048</button>
+        <button class="menu-btn" data-game="racing">Racing</button>
+        <button class="menu-btn" data-game="claw">Claw Machine</button>
+      </div>
     </div>
     <div id="board-container">
       <div id="board"></div>
@@ -31,8 +34,10 @@
       Game</button>
 
     <div id="leaderboard-section" class="notice-board">
-      <div class="notice-header">
+      <div class="notice-header" style="justify-content: space-between;">
         <h3>Leaderboard</h3>
+        <button id="sync-leaderboard-btn"
+          style="background: var(--win-window-bg); border: none; box-shadow: inset 1px 1px var(--win-border-white), inset -1px -1px var(--win-border-black), inset 2px 2px var(--win-border-light), inset -2px -2px var(--win-border-dark); padding: 2px 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer; color: var(--win-text);">⟳</button>
       </div>
       <div class="notice-body">
         <div class="notice-row header">

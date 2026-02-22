@@ -19,9 +19,27 @@ pub struct ActionResponse {
 impl GameEngine {
     #[wasm_bindgen(constructor)]
     pub fn new() -> GameEngine {
-        // Beginner level: 9x9 with 10 mines
+        // Default to Beginner level: 9x9 with 10 mines
         GameEngine {
             state: GameState::new(9, 9, 10),
+        }
+    }
+
+    pub fn new_beginner() -> GameEngine {
+        GameEngine {
+            state: GameState::new(9, 9, 10),
+        }
+    }
+
+    pub fn new_intermediate() -> GameEngine {
+        GameEngine {
+            state: GameState::new(16, 16, 40),
+        }
+    }
+
+    pub fn new_expert() -> GameEngine {
+        GameEngine {
+            state: GameState::new(16, 30, 99),
         }
     }
 

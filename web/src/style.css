@@ -1,16 +1,45 @@
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Default Light Win95 Theme */
+  --win-bg: #008080;
+  /* Teal desktop */
+  --win-window-bg: #c0c0c0;
+  /* Gray windows */
+  --win-text: #000000;
+  --win-title-bg: #000080;
+  --win-title-text: #ffffff;
+  --win-border-light: #dfdfdf;
+  --win-border-dark: #808080;
+  --win-border-black: #000000;
+  --win-border-white: #ffffff;
+
+  font-family: 'MS Sans Serif', 'Tahoma', 'Verdana', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: light;
+  color: var(--win-text);
+  background-color: var(--win-bg);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="dark"] {
+  /* Dark "Hacker" or High Contrast Theme */
+  --win-bg: #000000;
+  --win-window-bg: #2b2b2b;
+  --win-text: #00ff00;
+  /* Terminal green */
+  --win-title-bg: #004000;
+  --win-title-text: #00ff00;
+  --win-border-light: #444444;
+  --win-border-dark: #111111;
+  --win-border-black: #000000;
+  --win-border-white: #555555;
+
+  color-scheme: dark;
 }
 
 body {
@@ -19,6 +48,9 @@ body {
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--win-bg);
+  color: var(--win-text);
+  transition: background-color 0.3s, color 0.3s;
 }
 
 #app {
@@ -34,9 +66,13 @@ body {
 }
 
 h1 {
-  font-size: 3.2em;
+  font-size: 2.5em;
   line-height: 1.1;
   margin-bottom: 20px;
+  color: #fff;
+  text-shadow: 2px 2px 0 #000;
+  font-family: 'Times New Roman', Times, serif;
+  /* Classic serif for main title */
 }
 
 #board-container {
@@ -78,7 +114,14 @@ h1 {
 
 #status {
   font-size: 1.2rem;
-  color: #888;
+  color: var(--win-text);
+  background: var(--win-window-bg);
+  padding: 4px 10px;
+  box-shadow:
+    inset 1px 1px var(--win-border-dark),
+    inset -1px -1px var(--win-border-light);
+  margin-top: 10px;
+  display: inline-block;
 }
 
 .square.mine-cell {
@@ -222,35 +265,45 @@ h1 {
   top: 150px;
   left: calc(50% + 420px);
   width: 320px;
-  background: #c0c0c0;
-  /* Classic Win95 Gray */
+  background: var(--win-window-bg);
   box-shadow:
-    inset 1px 1px #dfdfdf,
-    inset -1px -1px #000,
-    inset 2px 2px #fff,
-    inset -2px -2px #808080;
+    inset 1px 1px var(--win-border-light),
+    inset -1px -1px var(--win-border-black),
+    inset 2px 2px var(--win-border-white),
+    inset -2px -2px var(--win-border-dark);
   overflow: hidden;
   font-family: 'MS Sans Serif', 'Tahoma', 'Verdana', sans-serif;
   z-index: 1000;
   text-align: left;
   border-radius: 0;
-  color: #000;
+  color: var(--win-text);
   padding: 2px;
 }
 
-/* Overwrite root defaults inside this widget */
-@media (prefers-color-scheme: dark) {
-  .notice-board {
-    background: #c0c0c0;
-    /* Force light classic theme even in dark mode */
-    color: #000;
-  }
+/* Classic Windows 95 Style Left Navigation Menu */
+.win95-menu {
+  position: absolute;
+  top: 150px;
+  right: calc(50% + 420px);
+  width: 200px;
+  background: var(--win-window-bg);
+  box-shadow:
+    inset 1px 1px var(--win-border-light),
+    inset -1px -1px var(--win-border-black),
+    inset 2px 2px var(--win-border-white),
+    inset -2px -2px var(--win-border-dark);
+  overflow: hidden;
+  font-family: 'MS Sans Serif', 'Tahoma', 'Verdana', sans-serif;
+  z-index: 1000;
+  text-align: left;
+  border-radius: 0;
+  color: var(--win-text);
+  padding: 2px;
 }
 
 .notice-header {
-  background: #000080;
-  /* Classic Win95 Title Bar Blue */
-  color: white;
+  background: var(--win-title-bg);
+  color: var(--win-title-text);
   padding: 2px 4px;
   text-align: left;
   display: flex;
@@ -269,56 +322,95 @@ h1 {
   max-height: 400px;
   overflow-y: scroll;
   /* Force classic scrollbar area */
-  background: #fff;
+  background: var(--win-text);
+  /* Reverse for terminal look in dark mode, or white in light */
+  color: var(--win-window-bg);
   box-shadow:
-    inset 1px 1px #000,
-    inset -1px -1px #dfdfdf,
-    inset 2px 2px #808080,
-    inset -2px -2px #fff;
+    inset 1px 1px var(--win-border-black),
+    inset -1px -1px var(--win-border-light),
+    inset 2px 2px var(--win-border-dark),
+    inset -2px -2px var(--win-border-white);
   margin-top: 4px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .notice-body {
-    background: #fff;
-  }
+/* Base it back to white/black explicitly for the text area */
+:root {
+  --content-bg: #fff;
+  --content-text: #000;
+}
+
+[data-theme="dark"] {
+  --content-bg: #000;
+  --content-text: #00ff00;
+}
+
+.notice-body,
+.menu-body {
+  background: var(--content-bg);
+  color: var(--content-text);
+}
+
+.menu-body {
+  padding: 4px;
+  box-shadow:
+    inset 1px 1px var(--win-border-black),
+    inset -1px -1px var(--win-border-light),
+    inset 2px 2px var(--win-border-dark),
+    inset -2px -2px var(--win-border-white);
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+}
+
+.menu-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 1px dotted var(--win-border-light);
+  text-align: left;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  color: var(--content-text);
+  transition: none;
+}
+
+.menu-btn:last-child {
+  border-bottom: none;
+}
+
+.menu-btn:hover {
+  background: var(--win-title-bg);
+  color: var(--win-title-text);
+}
+
+.menu-btn.active {
+  background: var(--win-title-bg);
+  color: var(--win-title-text);
 }
 
 .notice-row {
   display: flex;
   justify-content: space-between;
   padding: 4px 6px;
-  border-bottom: 1px solid #c0c0c0;
+  border-bottom: 1px solid var(--win-border-light);
   font-size: 0.85rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  .notice-row {
-    border-color: #c0c0c0;
-  }
-}
-
 .notice-row.header {
-  background: #c0c0c0;
+  background: var(--win-window-bg);
   font-weight: bold;
-  color: #000;
+  color: var(--win-text);
   text-transform: capitalize;
   font-size: 0.8rem;
   position: sticky;
   top: 0;
   box-shadow:
-    inset 1px 1px #dfdfdf,
-    inset -1px -1px #000,
-    inset 2px 2px #fff,
-    inset -2px -2px #808080;
+    inset 1px 1px var(--win-border-light),
+    inset -1px -1px var(--win-border-black),
+    inset 2px 2px var(--win-border-white),
+    inset -2px -2px var(--win-border-dark);
   margin-bottom: 2px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .notice-row.header {
-    background: #c0c0c0;
-    color: #000;
-  }
 }
 
 .notice-row:last-child {
@@ -330,15 +422,8 @@ h1 {
 }
 
 .notice-item:hover {
-  background: #000080;
-  color: #fff;
-}
-
-@media (prefers-color-scheme: dark) {
-  .notice-item:hover {
-    background: #000080;
-    color: #fff;
-  }
+  background: var(--win-title-bg);
+  color: var(--win-title-text);
 }
 
 .rank-col {
@@ -363,35 +448,49 @@ h1 {
   color: inherit;
 }
 
-@media (prefers-color-scheme: dark) {
-  .user-col {
-    color: inherit;
-  }
-
-  .rank-col {
-    color: inherit;
-  }
-
-  .score-col {
-    color: inherit;
-  }
-}
-
 .rank-1 .rank-col {
-  color: #800000;
+  color: gold;
   font-size: 0.9rem;
+  -webkit-text-stroke: 1px #555;
 }
 
-/* Dark red */
 .rank-2 .rank-col {
-  color: #008000;
+  color: silver;
   font-size: 0.85rem;
+  -webkit-text-stroke: 1px #555;
 }
 
-/* Dark green */
 .rank-3 .rank-col {
-  color: #000080;
+  color: #cd7f32;
   font-size: 0.85rem;
+  -webkit-text-stroke: 1px #555;
 }
 
-/* Dark blue */
+/* Light/Dark Toggle Button */
+#theme-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--win-window-bg);
+  border: none;
+  box-shadow:
+    inset 1px 1px var(--win-border-white),
+    inset -1px -1px var(--win-border-black),
+    inset 2px 2px var(--win-border-light),
+    inset -2px -2px var(--win-border-dark);
+  padding: 4px 8px;
+  font-family: 'MS Sans Serif', Tahoma, sans-serif;
+  color: var(--win-text);
+  cursor: pointer;
+  z-index: 2000;
+}
+
+#theme-toggle:active {
+  box-shadow:
+    inset 1px 1px var(--win-border-black),
+    inset -1px -1px var(--win-border-white),
+    inset 2px 2px var(--win-border-dark),
+    inset -2px -2px var(--win-border-light);
+  padding: 5px 7px 3px 9px;
+  /* Shifting text for pressed effect */
+}

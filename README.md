@@ -1,2 +1,4 @@
-- 이 프로젝트는 google antigravity 기반으로 작성되었습니다
-- npm run dev로 실행하면 됩니다
+```bash
+cd web
+npm run dev
+```
