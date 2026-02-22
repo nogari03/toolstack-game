@@ -5,6 +5,7 @@ import initMinesweeper, { GameEngine as MinesweeperEngine } from 'minesweeper-wa
 import init2048, { GameEngine as Game2048Engine } from 'game2048-wasm'
 import initRacing, { RacingGame } from 'racing-wasm'
 import initClaw, { ClawGame } from 'claw-wasm'
+import { LeaderboardAPI } from './leaderboard'
 
 type Color = "White" | "Black" | "Cho" | "Han";
 type PieceType = "Pawn" | "Knight" | "Bishop" | "Rook" | "Queen" | "King" | "General" | "Advisor" | "Elephant" | "Horse" | "Chariot" | "Cannon" | "Soldier";
@@ -23,11 +24,19 @@ let currentGame: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw"
 let selectedSquare: { row: number, col: number } | null = null;
 let validMovesForSelected: { row: number, col: number }[] = [];
 let keys = { up: false, down: false, left: false, right: false, space: false };
+let gameEndedRecorded: boolean = false;
+
+let guestUserId = localStorage.getItem('guest_user_id') || '';
+if (!guestUserId) {
+  guestUserId = 'User-' + Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+  localStorage.setItem('guest_user_id', guestUserId);
+}
 
 const boardElement = document.getElementById('board')!;
 const statusElement = document.getElementById('status')!;
 const gameSelector = document.getElementById('game-selector') as HTMLSelectElement;
 const resetButton = document.getElementById('reset-button') as HTMLButtonElement;
+const leaderboardList = document.getElementById('leaderboard-list')!;
 
 resetButton.addEventListener('click', () => {
   loadGame(currentGame);
@@ -141,6 +150,20 @@ function renderBoard() {
   } else {
     statusElement.innerHTML = `< strong style = "color:var(--focus-color); font-size: 1.5rem;" >${gameStatus}</strong>`;
     resetButton.style.display = 'block';
+
+    if (!gameEndedRecorded) {
+      gameEndedRecorded = true;
+      let result = "Draw";
+      if (gameStatus.includes("wins") || gameStatus.includes("Win")) result = "Win";
+      else if (gameStatus.includes("mate")) result = "Lose";
+
+      LeaderboardAPI.saveRecord({
+        game: currentGame,
+        userId: guestUserId,
+        result: result,
+        date: new Date().toISOString()
+      }).then(() => updateLeaderboardDisplay());
+    }
   }
 
   for (let row = 0; row < numRows; row++) {
@@ -210,6 +233,17 @@ function render2048Board(gameStatus: string) {
   } else {
     statusElement.innerHTML = `<strong style="font-size: 1.5rem;">${gameStatus}<br> Final Score: ${score}</strong>`;
     resetButton.style.display = 'block';
+
+    if (!gameEndedRecorded) {
+      gameEndedRecorded = true;
+      LeaderboardAPI.saveRecord({
+        game: currentGame,
+        userId: guestUserId,
+        result: gameStatus.includes("Won") ? "Win" : "Lose",
+        score: score,
+        date: new Date().toISOString()
+      }).then(() => updateLeaderboardDisplay());
+    }
   }
 
   for (let row = 0; row < 4; row++) {
@@ -249,6 +283,16 @@ function renderMinesweeperBoard(gameStatus: string) {
   } else {
     statusElement.innerHTML = `<strong style="font-size: 1.5rem;">${gameStatus}</strong>`;
     resetButton.style.display = 'block';
+
+    if (!gameEndedRecorded) {
+      gameEndedRecorded = true;
+      LeaderboardAPI.saveRecord({
+        game: currentGame,
+        userId: guestUserId,
+        result: gameStatus === "Won" ? "Win" : "Lose",
+        date: new Date().toISOString()
+      }).then(() => updateLeaderboardDisplay());
+    }
   }
 
   for (let row = 0; row < numRows; row++) {
@@ -545,10 +589,44 @@ function handleSquareClick(row: number, col: number, piece: Piece | null, isTarg
   renderBoard();
 }
 
+async function updateLeaderboardDisplay() {
+  if (!leaderboardList) return;
+  const records = await LeaderboardAPI.getRecords(currentGame);
+  leaderboardList.innerHTML = '';
+
+  if (records.length === 0) {
+    leaderboardList.innerHTML = '<div style="padding: 15px; text-align: center; color: #888;">No records yet. Be the first!</div>';
+    return;
+  }
+
+  records.slice(0, 10).forEach((record, index) => {
+    const row = document.createElement('div');
+    row.className = `notice-row notice-item rank-${index + 1}`;
+
+    let scoreText = record.score !== undefined ? record.score.toString() : record.result;
+
+    row.innerHTML = `
+      <span class="rank-col">${index + 1}</span>
+      <span class="user-col">${record.userId}</span>
+      <span class="score-col">${scoreText}</span>
+    `;
+
+    // Highlight wins visually
+    if (record.result === "Win") {
+      row.style.background = "rgba(76, 175, 80, 0.1)"; // Subtle green tint for win
+    }
+
+    leaderboardList.appendChild(row);
+  });
+}
+
 async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw") {
   currentGame = game;
   selectedSquare = null;
   validMovesForSelected = [];
+  gameEndedRecorded = false;
+  updateLeaderboardDisplay();
+
   stopRacingLoop(); // Clean up racing frame loop if it was active
   stopClawLoop();   // Clean up claw loop too
 
