@@ -1,5 +1,6 @@
 import './style.css'
 import initChess, { GameEngine as ChessEngine } from 'chess-wasm'
+import initChess2, { GameEngine as Chess2Engine } from 'chess2-wasm'
 import initJanggi, { GameEngine as JanggiEngine } from 'janggi-wasm'
 import initMinesweeper, { GameEngine as MinesweeperEngine } from 'minesweeper-wasm'
 import init2048, { GameEngine as Game2048Engine } from 'game2048-wasm'
@@ -20,7 +21,7 @@ type Square = Piece | null;
 type BoardGrid = Square[][];
 
 let engine: any;
-let currentGame: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw" = "chess";
+let currentGame: "chess" | "chess2" | "janggi" | "minesweeper" | "2048" | "racing" | "claw" = "chess";
 let currentMinesweeperDiff: "beginner" | "intermediate" | "expert" = "beginner";
 let currentAiModeStatus: { enabled: boolean, depth: number } = { enabled: false, depth: 1 };
 let selectedSquare: { row: number, col: number } | null = null;
@@ -135,6 +136,11 @@ const chessUnicodeMap: Record<string, Record<string, string>> = {
   Black: { Pawn: '♟', Knight: '♞', Bishop: '♝', Rook: '♜', Queen: '♛', King: '♚' }
 };
 
+const chessPieceImages: Record<string, Record<string, string>> = {
+  White: { Pawn: '/pieces/chess2/w-pawn.png', Knight: '/pieces/chess2/w-knight.png', Bishop: '/pieces/chess2/w-bishop.png', Rook: '/pieces/chess2/w-rook.png', Queen: '/pieces/chess2/w-queen.png', King: '/pieces/chess2/w-king.png' },
+  Black: { Pawn: '/pieces/chess2/b-pawn.png', Knight: '/pieces/chess2/b-knight.png', Bishop: '/pieces/chess2/b-bishop.png', Rook: '/pieces/chess2/b-rook.png', Queen: '/pieces/chess2/b-queen.png', King: '/pieces/chess2/b-king.png' }
+};
+
 const janggiUnicodeMap: Record<string, Record<string, string>> = {
   Han: { General: '漢', Advisor: '士', Elephant: '象', Horse: '馬', Chariot: '車', Cannon: '包', Soldier: '兵' },
   Cho: { General: '楚', Advisor: '士', Elephant: '象', Horse: '馬', Chariot: '車', Cannon: '包', Soldier: '卒' }
@@ -201,7 +207,7 @@ function renderBoard() {
     for (let col = 0; col < numCols; col++) {
       const square = document.createElement('div');
 
-      const isLight = currentGame === 'chess' ? (row + col) % 2 === 0 : true; // Janggi board is typically one color
+      const isLight = (currentGame === 'chess' || currentGame === 'chess2') ? (row + col) % 2 === 0 : true; // Janggi board is typically one color
       square.className = `square ${isLight ? 'light' : 'dark'}`;
 
       if (currentGame === "janggi") {
@@ -224,14 +230,21 @@ function renderBoard() {
 
       const piece = boardState[row][col];
       if (piece) {
-        const charMap = currentGame === "chess" ? chessUnicodeMap : janggiUnicodeMap;
-        square.textContent = charMap[piece.color]?.[piece.piece_type] || '?';
-
-        if (currentGame === "janggi") {
-          square.style.color = piece.color === "Han" ? "#d32f2f" : "#0288d1"; // Red for Han, Blue for Cho
-          square.style.fontWeight = "bold";
+        if (currentGame === "chess2") {
+          square.innerHTML = `<img src="${chessPieceImages[piece.color]?.[piece.piece_type]}" style="width: 80%; height: 80%; pointer-events: none;" />`;
+          square.style.display = 'flex';
+          square.style.justifyContent = 'center';
+          square.style.alignItems = 'center';
         } else {
-          square.style.color = "#000";
+          const charMap = currentGame === "chess" ? chessUnicodeMap : janggiUnicodeMap;
+          square.textContent = charMap[piece.color]?.[piece.piece_type] || '?';
+
+          if (currentGame === "janggi") {
+            square.style.color = piece.color === "Han" ? "#d32f2f" : "#0288d1"; // Red for Han, Blue for Cho
+            square.style.fontWeight = "bold";
+          } else {
+            square.style.color = "#000";
+          }
         }
       } else {
         square.textContent = '';
@@ -637,7 +650,7 @@ function handleSquareClick(row: number, col: number, piece: Piece | null, isTarg
 
     if (currentAiModeStatus.enabled && response.success) {
       const newTurnInfo = JSON.parse(engine.get_current_turn());
-      if ((currentGame === "chess" && newTurnInfo === "Black") ||
+      if (((currentGame === "chess" || currentGame === "chess2") && newTurnInfo === "Black") ||
         (currentGame === "janggi" && newTurnInfo === "White")) {
         triggerAIMove();
       }
@@ -751,7 +764,7 @@ function showMinesweeperMenu() {
   });
 }
 
-function showAIMenu(gameType: "chess" | "janggi") {
+function showAIMenu(gameType: "chess" | "chess2" | "janggi") {
   boardElement.style.display = 'flex';
   boardElement.style.flexDirection = 'column';
   boardElement.style.justifyContent = 'center';
@@ -763,7 +776,7 @@ function showAIMenu(gameType: "chess" | "janggi") {
   boardElement.style.border = '4px solid var(--win-border-light)';
   boardElement.style.boxShadow = 'inset 1px 1px var(--win-border-dark), inset -1px -1px var(--win-border-white)';
 
-  const gameName = gameType === "chess" ? "Chess" : "Janggi";
+  const gameName = gameType === "chess" ? "Chess" : (gameType === "chess2" ? "Chess 2" : "Janggi");
   statusElement.textContent = `Start ${gameName}`;
   resetButton.style.display = 'none';
 
@@ -786,6 +799,8 @@ function showAIMenu(gameType: "chess" | "janggi") {
 
       if (gameType === "chess") {
         engine = new ChessEngine();
+      } else if (gameType === "chess2") {
+        engine = new Chess2Engine();
       } else {
         engine = new JanggiEngine();
       }
@@ -805,7 +820,7 @@ function showAIMenu(gameType: "chess" | "janggi") {
   });
 }
 
-async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw") {
+async function loadGame(game: "chess" | "chess2" | "janggi" | "minesweeper" | "2048" | "racing" | "claw") {
   currentGame = game;
   selectedSquare = null;
   lastMove = null;
@@ -816,7 +831,7 @@ async function loadGame(game: "chess" | "janggi" | "minesweeper" | "2048" | "rac
   stopRacingLoop(); // Clean up racing frame loop if it was active
   stopClawLoop();   // Clean up claw loop too
 
-  if (game === "chess" || game === "janggi") {
+  if (game === "chess" || game === "chess2" || game === "janggi") {
     engine = null;
     showAIMenu(game);
     return;
@@ -846,7 +861,7 @@ menuButtons.forEach(btn => {
     const target = e.currentTarget as HTMLButtonElement;
     target.classList.add('active');
 
-    const newGame = target.getAttribute('data-game') as "chess" | "janggi" | "minesweeper" | "2048" | "racing" | "claw";
+    const newGame = target.getAttribute('data-game') as "chess" | "chess2" | "janggi" | "minesweeper" | "2048" | "racing" | "claw";
 
     if (newGame) {
       loadGame(newGame);
@@ -856,6 +871,7 @@ menuButtons.forEach(btn => {
 
 async function start() {
   await initChess();
+  await initChess2();
   await initJanggi();
   await initMinesweeper();
   await init2048();

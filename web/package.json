@@ -18,6 +18,7 @@
     "minesweeper-wasm": "file:../wasm/minesweeper-wasm/pkg",
     "game2048-wasm": "file:../wasm/2048-wasm/pkg",
     "racing-wasm": "file:../wasm/racing-wasm/pkg",
-    "claw-wasm": "file:../wasm/claw-wasm/pkg"
+    "claw-wasm": "file:../wasm/claw-wasm/pkg",
+    "chess2-wasm": "file:../wasm/chess2-wasm/pkg"
   }
 }
