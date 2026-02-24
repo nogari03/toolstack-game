@@ -44,12 +44,12 @@ const TRACK_HEIGHT: usize = 15;
 const TILE_SIZE: f64 = 40.0; // Assume frontend renders each tile as 40x40 pixels
 
 // Car physics constants
-const ACCELERATION: f64 = 0.2;
-const MAX_SPEED: f64 = 8.0;
+const ACCELERATION: f64 = 0.05;
+const MAX_SPEED: f64 = 5.0;
 const FRICTION: f64 = 0.95;
 const OFF_ROAD_FRICTION: f64 = 0.8;
 const MIN_SPEED_TO_TURN: f64 = 0.5;
-const TURN_SPEED: f64 = 0.08;
+const TURN_SPEED: f64 = 0.05;
 const BRAKE_POWER: f64 = 0.4;
 
 #[wasm_bindgen]
